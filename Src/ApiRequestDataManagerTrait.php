@@ -311,13 +311,14 @@ trait ApiRequestDataManagerTrait
                                 throw new \ErrorException("The `type` parameter must be first or second (after `required`) in the field `" . $prefixName . "$name`");
                             }
                             $storageSize = $condList;
-                            if (array_diff($condList, ['string', 'double', 'float', 'int', 'integer', 'regex', 'fullregex', 'bool', 'boolean', 'null', 'void'])) {
+                            if (array_diff($condList, ['string', 'double', 'float', 'int', 'integer', 'regex', 'fullregex', 'bool', 'boolean', 'null', 'void', 'array'])) {
                                 throw new \ErrorException("Unsupported value type in field `" . $prefixName . "$name`");
                             }
-                            if ((gettype($inputValue) === 'integer' && !in_array('int', $condList) && !in_array('integer', $condList)) ||
+                            if (!in_array(gettype($inputValue), ['boolean', 'integer', 'double', 'float', 'string', 'array', 'NULL']) ||
+                                (gettype($inputValue) === 'integer' && !in_array('int', $condList) && !in_array('integer', $condList)) ||
+                                (is_array($inputValue) && !in_array('array', $condList)) ||
                                 (is_null($inputValue) && !in_array('null', $condList, true)) ||
-                                (gettype($inputValue) === 'string' && !in_array('string', $condList)) && !in_array('void', $condList) ||
-                                ($inputValue === '' && !in_array('void', $condList)) ||
+                                (is_string($inputValue)) && !(in_array('string', $condList) || ($inputValue === '' && in_array('void', $condList))) ||
                                 (gettype($inputValue) === 'double' && !in_array('double', $condList) && !in_array('float', $condList)) ||
                                 (gettype($inputValue) === 'boolean' && !in_array('bool', $condList) && !in_array('boolean', $condList))
                             ) {
