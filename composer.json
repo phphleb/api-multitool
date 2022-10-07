@@ -1,0 +1,24 @@
+{
+  "name": "phphleb/api-traits-box",
+  "description": "A set of traits for creating an API",
+  "type": "library",
+  "keywords": [
+    "api"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Foma Tuturov",
+      "email": "fomiash@yandex.ru"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Phphleb\\ApiMultitool\\": "/"
+    }
+  },
+  "require": {
+    "php": ">=7.4.0"
+  },
+  "minimum-stability": "dev"
+}
