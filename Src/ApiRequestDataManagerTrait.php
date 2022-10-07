@@ -165,6 +165,17 @@ trait ApiRequestDataManagerTrait
 
         foreach ($rules as $name => $value) {
             if (is_string($value)) {
+                if (strpos($value, 'fullregex:')) {
+                    preg_match('~fullregex:\/(.*?)\/~', $value, $match );
+                    if (!empty($match)) {
+                        $regexParts = explode(':', $match[0]);
+                        if (count($regexParts) > 1) {
+                            unset($regexParts[0]);
+                            $match[0] = 'fullregex:' . implode('&#xa789;', $regexParts);
+                        }
+                        $value = str_replace($match[0], str_replace('|', '&#166;', $match[0]), $value);
+                    }
+                }
                 $rulesValue = trim($value, ' |');
                 $required = strpos($rulesValue, 'required') === 0;
             } else {
@@ -293,6 +304,8 @@ trait ApiRequestDataManagerTrait
                     if (count($style) !== 2) {
                         if (count($style) === 1 && $position !== 0 && trim($style[0]) === 'required') {
                             throw new \ErrorException("The `required` parameter must be first in the field `" . $prefixName . "$name`");
+                        } else if (!(count($style) === 1 && trim($style[0]) == 'required')) {
+                            throw new \ErrorException("Unrecognized parameter for field `" . $prefixName . "$name`");
                         }
                     } else {
                         $mark = $style[0];
@@ -311,7 +324,7 @@ trait ApiRequestDataManagerTrait
                                 throw new \ErrorException("The `type` parameter must be first or second (after `required`) in the field `" . $prefixName . "$name`");
                             }
                             $storageSize = $condList;
-                            if (array_diff($condList, ['string', 'double', 'float', 'int', 'integer', 'regex', 'fullregex', 'bool', 'boolean', 'null', 'void', 'array'])) {
+                            if (array_diff($condList, ['string', 'double', 'float', 'int', 'integer', 'bool', 'boolean', 'null', 'void', 'array'])) {
                                 throw new \ErrorException("Unsupported value type in field `" . $prefixName . "$name`");
                             }
                             if (!in_array(gettype($inputValue), ['boolean', 'integer', 'double', 'float', 'string', 'array', 'NULL']) ||
@@ -364,8 +377,11 @@ trait ApiRequestDataManagerTrait
                             if (!array_diff($condList, ['string']) && gettype($inputValue) !== 'string') {
                                 throw new \ErrorException("Wrong format of value `$mark` for field `" . $prefixName . "$name`. A string value was expected");
                             }
+                            if ($mark === 'fullregex' && is_string($arg)) {
+                                $arg = str_replace('&#166;', '|',  str_replace('&#xa789;', ':',  $arg));
+                            }
                             // Проверка по регулярному выражению
-                            if (is_string($inputValue) && !preg_match($mark === 'regex' ? '|^' . $arg . '$|' : $arg, $inputValue)) {
+                            if (is_string($inputValue) && !preg_match($mark === 'regex' ? '/^' . $arg . '$/' : $arg, $inputValue)) {
                                 $this->apiBoxErrorCells[] = $name;
                                 $this->apiBoxErrorMessages[$name] = sprintf($this->apiBoxErrorsList['error.wrong_value_format'], $prefixName . $name);
                                 if ($returnFirst) {
