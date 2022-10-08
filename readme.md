@@ -116,7 +116,7 @@ $result = $this->check($data, // $result - булево значение, пок
    'name'  => 'type:string,null',        // Необязательное поле, но будет проверен тип string или NULL, если найдено.
    'password'  => 'required|type:string|minlength:6' // Обязательное поле, тип string, минимальное кол-во символов 6.
  ]);
-$errorCells = $this->getErrorCells(); // Массив со списком поля/полей не прошедших проверку.
+$errorCells = $this->getErrorCells(); // Массив со списком полей не прошедших проверку.
 $errorMessage = $this->getErrorMessage(); // Массив с сообщениями о произошедших ошибках валидации.  
 
 ```
