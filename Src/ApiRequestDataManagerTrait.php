@@ -163,6 +163,7 @@ trait ApiRequestDataManagerTrait
         }
         $returnFirst = is_null($returnFirst) ? $this->apiBoxReturnFirst : $returnFirst;
 
+
         foreach ($rules as $name => $value) {
             if (is_string($value)) {
                 if (strpos($value, 'fullregex:')) {
@@ -182,7 +183,7 @@ trait ApiRequestDataManagerTrait
                 $rulesValue = $value;
                 $required = false;
                 if (is_array($rulesValue)) {
-                    if (count($rulesValue) === 2 && $rulesValue[0] === 'required' && is_array($rulesValue[1])) {
+                    if (count($rulesValue) && !empty($rulesValue[0]) && $rulesValue[0] === 'required' && is_array($rulesValue[1])) {
                         $required = true;
                         $rulesValue = $rulesValue[1];
                     }
@@ -191,7 +192,9 @@ trait ApiRequestDataManagerTrait
             $inputValue = null;
             // Проверка на наличие названия.
             $search = true;
+            $messageName = $name;
             if (!isset($received[$name])) { // Непрямое совпадение
+                $messageName = $prefixName . (strpos((string)$name, '[') === 0 ? $name : '[' . $name . ']');
                 $lvl = explode('][', trim($name, ']['));
                 foreach ($lvl as $k => $l) {
                     if (!is_numeric(trim($l, '\''))) {
@@ -257,13 +260,15 @@ trait ApiRequestDataManagerTrait
                         $search = false;
                 }
                 if ($search === false && $required) {
-                    $this->apiBoxErrorCells[] = $name;
-                    $this->apiBoxErrorMessages[$name] = sprintf($this->apiBoxErrorsList['error.empty_name'], $prefixName . $name);
+                    $this->apiBoxErrorCells[] = $messageName;
+                    $this->apiBoxErrorMessages[$messageName] = sprintf($this->apiBoxErrorsList['error.empty_name'], $messageName);
                     if ($returnFirst) {
                         return false;
                     }
                     continue;
                 }
+            } else if (!empty($prefixName)) {
+                $messageName = $prefixName . '[' . trim((string)$name, '][') . ']';
             }
 
             // Проверка правильности значения, если найдено - нужно проверить, даже если не обязательное поле.
@@ -273,10 +278,10 @@ trait ApiRequestDataManagerTrait
                 if (is_array($rulesValue)) {
                     if (count($rulesValue) && is_array($inputValue)) {
                         foreach($inputValue as $key => $list) {
-                            $formatName = $prefixName . '[' . trim((string)$name, '][') . "][$key]";
+                            $formatName = $messageName . "[$key]";
                             if (!is_array($list)) {
-                                $this->apiBoxErrorCells[] = $name;
-                                $this->apiBoxErrorMessages[$name] = sprintf($this->apiBoxErrorsList['error.wrong_value_array_format'], $formatName);
+                                $this->apiBoxErrorCells[] = $messageName;
+                                $this->apiBoxErrorMessages[$messageName] = sprintf($this->apiBoxErrorsList['error.wrong_value_array_format'], $formatName);
                                 if ($returnFirst) {
                                     return false;
                                 }
@@ -287,8 +292,8 @@ trait ApiRequestDataManagerTrait
                             }
                         }
                     } else {
-                        $this->apiBoxErrorCells[] = $name;
-                        $this->apiBoxErrorMessages[$name] = sprintf($this->apiBoxErrorsList['error.wrong_value_array_format'], $prefixName . $name);
+                        $this->apiBoxErrorCells[] = $messageName;
+                        $this->apiBoxErrorMessages[$messageName] = sprintf($this->apiBoxErrorsList['error.wrong_value_array_format'], $messageName);
                         if ($returnFirst) {
                             return false;
                         }
@@ -303,29 +308,29 @@ trait ApiRequestDataManagerTrait
                     $style = explode(':', $rule);
                     if (count($style) !== 2) {
                         if (count($style) === 1 && $position !== 0 && trim($style[0]) === 'required') {
-                            throw new \ErrorException("The `required` parameter must be first in the field `" . $prefixName . "$name`");
+                            throw new \ErrorException("The `required` parameter must be first in the field `$messageName`");
                         } else if (!(count($style) === 1 && trim($style[0]) == 'required')) {
-                            throw new \ErrorException("Unrecognized parameter for field `" . $prefixName . "$name`");
+                            throw new \ErrorException("Unrecognized parameter for field `$messageName`");
                         }
                     } else {
                         $mark = $style[0];
                         $arg = $style[1];
                         if ($mark === '' || $mark === null || $arg === '') {
-                            throw new \ErrorException("Unknown condition in field `" . $prefixName . "$name`");
+                            throw new \ErrorException("Unknown condition in field `$messageName`");
                         }
                         if (in_array($mark, $rulesList)) {
-                            throw new \ErrorException("The value `$mark` must be in the singular for the field `" . $prefixName . "$name`");
+                            throw new \ErrorException("The value `$mark` must be in the singular for the field `$messageName`");
                         }
                         $rulesList[] = $mark;
                         $condList = explode(',', $arg);
                         // Проверка на совпадение с заданными типами значений
                         if ($mark === 'type') {
                             if ($position > 1) { // Тип должен быть в начале
-                                throw new \ErrorException("The `type` parameter must be first or second (after `required`) in the field `" . $prefixName . "$name`");
+                                throw new \ErrorException("The `type` parameter must be first or second (after `required`) in the field `$messageName`");
                             }
                             $storageSize = $condList;
                             if (array_diff($condList, ['string', 'double', 'float', 'int', 'integer', 'bool', 'boolean', 'null', 'void', 'array'])) {
-                                throw new \ErrorException("Unsupported value type in field `" . $prefixName . "$name`");
+                                throw new \ErrorException("Unsupported value type in field `$messageName`");
                             }
                             if (!in_array(gettype($inputValue), ['boolean', 'integer', 'double', 'float', 'string', 'array', 'NULL']) ||
                                 (gettype($inputValue) === 'integer' && !in_array('int', $condList) && !in_array('integer', $condList)) ||
@@ -335,8 +340,8 @@ trait ApiRequestDataManagerTrait
                                 (gettype($inputValue) === 'double' && !in_array('double', $condList) && !in_array('float', $condList)) ||
                                 (gettype($inputValue) === 'boolean' && !in_array('bool', $condList) && !in_array('boolean', $condList))
                             ) {
-                                $this->apiBoxErrorCells[] = $name;
-                                $this->apiBoxErrorMessages[$name] = sprintf($this->apiBoxErrorsList['error.wrong_value_type'], gettype($inputValue), $prefixName . $name);
+                                $this->apiBoxErrorCells[] = $messageName;
+                                $this->apiBoxErrorMessages[$messageName] = sprintf($this->apiBoxErrorsList['error.wrong_value_type'], gettype($inputValue), $messageName);
                                 if ($returnFirst) {
                                     return false;
                                 }
@@ -344,22 +349,22 @@ trait ApiRequestDataManagerTrait
                         } else if ($mark === 'max' || $mark === 'min') {
                             // Проверка на совпадение с промежутком min и/или max
                             if (!array_diff($condList, ['int', 'integer', 'float', 'double']) && !is_float($arg) && !is_int($arg)) {
-                                throw new \ErrorException("Wrong format of value `$mark` for field `" . $prefixName . "$name`. A numerical value was expected");
+                                throw new \ErrorException("Wrong format of value `$mark` for field `$messageName`. A numerical value was expected");
                             }
                             if ((is_float($inputValue) || is_int($inputValue)) && (($mark === 'max' && $arg < $inputValue) || ($mark === 'min' && $arg > $inputValue))) {
-                                $this->apiBoxErrorCells[] = $name;
-                                $this->apiBoxErrorMessages[$name] = sprintf($this->apiBoxErrorsList["error.wrong_value_{$mark}_format"], $prefixName . $name);
+                                $this->apiBoxErrorCells[] = $messageName;
+                                $this->apiBoxErrorMessages[$messageName] = sprintf($this->apiBoxErrorsList["error.wrong_value_{$mark}_format"], $messageName);
                                 if ($returnFirst) {
                                     return false;
                                 }
                             }
                         } else if ($mark === 'maxlength' || $mark === 'maxlen' || $mark === 'minlength' || $mark === 'minlen') {
                             if (!array_diff($condList, ['string']) && gettype($inputValue) !== 'string') {
-                                throw new \ErrorException("Wrong format of value `$mark` for field `" . $prefixName . "$name`. A string value was expected");
+                                throw new \ErrorException("Wrong format of value `$mark` for field `$messageName`. A string value was expected");
                             }
                             if (!(in_array('void', $storageSize) && $inputValue === '') && gettype($inputValue) === 'string' && ((($mark === 'maxlength' || $mark === 'maxlen') && strlen($inputValue) > (int)$arg) || (($mark === 'minlength' || $mark === 'minlen') && strlen($inputValue) < (int)$arg))) {
-                                $this->apiBoxErrorCells[] = $name;
-                                $this->apiBoxErrorMessages[$name] = sprintf($this->apiBoxErrorsList['error.wrong_value_length'], $prefixName . $name);
+                                $this->apiBoxErrorCells[] = $messageName;
+                                $this->apiBoxErrorMessages[$messageName] = sprintf($this->apiBoxErrorsList['error.wrong_value_length'], $messageName);
                                 if ($returnFirst) {
                                     return false;
                                 }
@@ -367,29 +372,29 @@ trait ApiRequestDataManagerTrait
                         } else if ($mark === 'enum') {
                             // Перечисления без учёта типа
                             if (!in_array($inputValue, $condList)) {
-                                $this->apiBoxErrorCells[] = $name;
-                                $this->apiBoxErrorMessages[$name] = sprintf($this->apiBoxErrorsList['error.wrong_value_enum'], $prefixName . $name);
+                                $this->apiBoxErrorCells[] = $messageName;
+                                $this->apiBoxErrorMessages[$messageName] = sprintf($this->apiBoxErrorsList['error.wrong_value_enum'], $messageName);
                                 if ($returnFirst) {
                                     return false;
                                 }
                             }
                         } else if ($mark === 'regex' || $mark === 'fullregex') {
                             if (!array_diff($condList, ['string']) && gettype($inputValue) !== 'string') {
-                                throw new \ErrorException("Wrong format of value `$mark` for field `" . $prefixName . "$name`. A string value was expected");
+                                throw new \ErrorException("Wrong format of value `$mark` for field `$messageName`. A string value was expected");
                             }
                             if ($mark === 'fullregex' && is_string($arg)) {
                                 $arg = str_replace('&#166;', '|',  str_replace('&#xa789;', ':',  $arg));
                             }
                             // Проверка по регулярному выражению
                             if (is_string($inputValue) && !preg_match($mark === 'regex' ? '/^' . $arg . '$/' : $arg, $inputValue)) {
-                                $this->apiBoxErrorCells[] = $name;
-                                $this->apiBoxErrorMessages[$name] = sprintf($this->apiBoxErrorsList['error.wrong_value_format'], $prefixName . $name);
+                                $this->apiBoxErrorCells[] = $messageName;
+                                $this->apiBoxErrorMessages[$messageName] = sprintf($this->apiBoxErrorsList['error.wrong_value_format'], $messageName);
                                 if ($returnFirst) {
                                     return false;
                                 }
                             }
                         } else {
-                            throw new \ErrorException("Unknown condition `?:params` for field `" . $prefixName . "$name`");
+                            throw new \ErrorException("Unknown condition `?:params` for field `$messageName`");
                         }
                     }
                 }
@@ -402,7 +407,7 @@ trait ApiRequestDataManagerTrait
                         in_array('minlength', $rulesList)
                     )
                 ) {
-                    throw new \ErrorException("Specified range 'maxlength' or 'minlength' for a non-existent type 'string' for a field `" . $prefixName . "$name`");
+                    throw new \ErrorException("Specified range 'maxlength' or 'minlength' for a non-existent type 'string' for a field `$messageName`");
                 }
                 if (!in_array("int", $storageSize) &&
                     !in_array("integer", $storageSize) &&
@@ -410,7 +415,7 @@ trait ApiRequestDataManagerTrait
                     !in_array("double", $storageSize) &&
                     (in_array('max', $rulesList) || in_array('min', $rulesList))
                 ) {
-                    throw new \ErrorException("Specified span 'max' or 'min' for non-existent numeric type for field `" . $prefixName . "$name`");
+                    throw new \ErrorException("Specified span 'max' or 'min' for non-existent numeric type for field `$messageName`");
                 }
             }
 
