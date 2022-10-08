@@ -172,6 +172,10 @@ $result = $this->check(
 
 Приведённое выше условие вернёт успешную проверку с учётом вложенности.
 
+### Тестирование
+
+Трейты API проверены при помощи [github.com/phphleb/api-tests](https://github.com/phphleb/api-tests)
+
 
 -----------------
 
