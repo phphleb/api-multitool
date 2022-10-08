@@ -194,7 +194,7 @@ trait ApiRequestDataManagerTrait
             $search = true;
             $messageName = $name;
             if (!isset($received[$name])) { // Непрямое совпадение
-                $messageName = $prefixName . (strpos((string)$name, '[') === 0 ? $name : '[' . $name . ']');
+                $messageName = $prefixName ? ($prefixName . (is_string($name) && !empty($name) && $name[0] === '[' ? $name : '[' . $name . ']')) : $name;
                 $lvl = explode('][', trim($name, ']['));
                 foreach ($lvl as $k => $l) {
                     if (!is_numeric(trim($l, '\''))) {
