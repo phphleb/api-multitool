@@ -1,184 +1,56 @@
-Набор полезных трейтов для реализации API
+A set of useful traits for API implementation
 =====================
 
- Могут быть использованы как отдельно, так и совместно с микрофреймворком HLEB: [github.com/phphleb/hleb](https://github.com/phphleb/hleb) 
+![PHP](https://img.shields.io/badge/PHP-^7.4-blue) ![PHP](https://img.shields.io/badge/PHP-8-blue) [![License: MIT](https://img.shields.io/badge/License-MIT%20(Free)-brightgreen.svg)](https://github.com/phphleb/hleb/blob/master/LICENSE)
 
- Набор представляет собой независимые трейты, каждый их которых реализует узкоспециальные методы, которые используются в контроллерах.
- 
-  ### Установка
-  
-  Через композер
+Can be used either separately or in conjunction with the HLEB2 framework: [github.com/phphleb/hleb](https://github.com/phphleb/hleb) 
+
+The set represents independent traits, each of which implements highly specialized methods that are used in controllers.
+
+### Installation
+
+Using Composer
  ```bash
   composer require phphleb/api-multitool
  ```
- или скачать библиотеку в папку 'vendor/phphleb/api-multitool'.
+or download the library to the 'vendor/phphleb/api-multitool' folder.
 
  ### BaseApiTrait
- 
- Bсе вспомогательные трейты собраны в трейте **BaseApiTrait** как набор. Поэтому достаточно подключить его к контроллеру и получить полную реализацию.
- Если необходим другой набор из этих трейтов, то нужно или использовать их группой или соединить в собственный набор.
- Такой трейт лучше всего включить в класс-родитель для контроллеров, реализующих API, чтобы не делать это для каждого.
 
-Для фреймворка HLEB это может выглядеть так (пример реализации):
+All auxiliary traits are collected in the trait **BaseApiTrait** as a set. Therefore, it is enough to connect it to the controller and get a complete implementation.
+If another set of these traits is needed, then you need to either use them as a group or combine them into your own set.
+It is best to include such a trait in the parent class of controllers that implement the API, so as not to have to do this for everyone.
+
+For the HLEB2 framework it might look like this (implementation example):
 
 ```php
 <?php
+// File /app/Controllers/Api/BaseApiActions.php
 
 namespace App\Controllers\Api;
 
+use Hleb\Base\Controller;
 use Phphleb\ApiMultitool\BaseApiTrait;
 
-class BaseApiActions extends \MainController
+class BaseApiActions extends Controller
 {
-    /* Подключение набора трейтов для API */
+    // Adding a set of traits for the API.
     use BaseApiTrait;
 
-    public function __construct(array $data = null)
+    function __construct(array $config = [])
     {
-        parent::__construct($data);
+        parent::__construct($config);
 
-        /* Передача в конструктор API значения режима отладки. */
-        $this->setApiBoxDebug(HLEB_PROJECT_DEBUG);
+        // Passing the debug mode value to the API constructor.
+        $this->setApiBoxDebug($this->container->settings()->isDebug());
     }
 }
 
 ```
-После этого во всех наследуемых от этого класса контроллерах появятся методы от каждого трейта в наборе:
+After this, all controllers inheriting from this class will have methods from each trait in the set.
 
-### ApiHandlersTrait
+More details can be found in the [**framework documentation**](https://hleb2framework.ru).
 
-Трейт _ApiHandlersTrait_ содержит несколько методов, которые могут пригодиться для
-обработки возвращаемых данных API. Это не значит, что его методы 'present' и 'error' формируют
-окончательный ответ, они возвращают именованные массивы, которые можно использовать по
-собственному более сложному стандарту. Пример в методе контроллера, для фреймворка HLEB:
+### Testing
 
-```php
-<?php
-
-namespace App\Controllers\Api;
-
-use App\Models\UserModel;
-use Hleb\Constructor\Handlers\Request;
-
-class UserController extends BaseApiActions
-{
-    public function actionGetOne() {
-        $id = Request::getInt('id');
-        if (!$id) {
-            return $this->error('Invalid request data: id', 400);
-        }
-        $data = UserModel::getOne($id);
-
-        return array_merge(
-            $this->present($data ?: []),
-            ['error_cells' => $this->getErrorCells()]
-         );
-    }
-}
-
-``` 
-Во фреймворке HLEB при возвращении массива из контроллера он автоматически преобразуется в JSON.
-При выводе отформатированного массива к нему добавлено значение 'error_cells' с перечнем полей, в которых произошли ошибки (при наличии таковых).
-
-### ApiMethodWrapperTrait
-
-Осуществляет перехват системных ошибок и вывод их в метод 'error' предыдущего трейта _ApiHandlersTrait_
-или иного, предназначенного для этой цели (если упомянутый трейт не используется).
-Если вызван метод контроллера, то для правильной обработки его ошибок необходимо добавить
-префикс 'action', как, например, для предыдущего примера контроллера роутинг будет примерно таким:
-
-```php
-Route::get("/api/users/{id}")->controller('Api\UserController@getOne');
-
-```
-
-Здесь нужно заметить, что в оригинале вызов идёт к методу 'getOne' контроллера, а в самом контроллере метод '**action**GetOne'.
-
-### ApiPageManagerTrait
-
-Реализует довольно частно необходимую функцию пагинации выводимых данных.
-Добавляет метод 'getPageInterval', который преобразует данные пагинации в более удобный вид.
-При этом вычисляется начальное значение выборки, что удобно для работы с базой данных.
-
-### ApiRequestDataManagerTrait
-
-Добавляет метод 'check', при помощи которого можно проверить данные одного массива при помощи условий проверки из другого.
-Использование этого трейта добавляет возможность проверить любые входящие данные, преобразованные в массив, будь это параметры POST-запроса или JSON Body.
-Существует перечень возможных условий, при помощи которых можно проверить данные, они составляются разработчиком.
-Например (Request::getJsonBodyList для фреймворка HLEB возвращает массив JSON Body):
-
-```php
-$data = Request::getJsonBodyList() ?: [];
-$result = $this->check($data, // $result - булево значение, показывающее прошли проверки успешно или нет.
- [ 
-   'id'    => 'required|type:int|min:1', // Обязательное поле, тип integer, минимальное значение 1.
-   'email' => 'required|type:string',    // Обязательное поле, тип string.
-   'name'  => 'type:string,null',        // Необязательное поле, но будет проверен тип string или NULL, если найдено.
-   'password'  => 'required|type:string|minlength:6' // Обязательное поле, тип string, минимальное кол-во символов 6.
- ]);
-$errorCells = $this->getErrorCells(); // Массив со списком полей не прошедших проверку.
-$errorMessage = $this->getErrorMessage(); // Массив с сообщениями о произошедших ошибках валидации.  
-
-```
-
-**required** - обязательное поле, располагается строго в начале.
-
-Список возможных типов ('type' - обязательно на первом месте или после _required_):
-
-**string** - проверяет наличие строкового значения, ограничения могут быть _minlength_ и _maxlength_.
-
-**float** - проверка на тип float(double), ограничения могут быть _max_ и _min_.
-
-**int** - проверка на тип int(integer), ограничения могут быть _max_ и _min_.
-
-**regex** - проверка по регулярному выражению, например 'regex:[0-9]+'.
-
-**fullregex** - проверка по полному регулярному выражению, аналогично 'fullregex:/^[0-9]+$/i', обязательно обрамлённое слешами, может содержать символы `:` и `|`, в отличие от более простого _regex_.
-
-**bool** - проверка на булево значение, только true или false.
-
-**null** - проверка на null как правильное значение.
-
-**void** - проверка на пустую строку как правильное значение.
-
-Тип для перечислений:
-
-**enum** - поиск среди возможных значений, например 'enum:1,2,3,4,south,east,north,west'. Проверка на равенство не строгая, поэтому правильно будет как 4, так и '4', для точного соответствия лучше сопроводить проверкой на тип.
-
-Можно добавить два и более типов, они будут проверены на все общие условия включительно, например 
-`type:string,null,void|minlen:5` - будет означать, что
-проверяется строка, минимум 5 символов или пустая, или же значение null, во всех
-остальных случаях возвращает *false* как результат не пройденной проверки валидации.
-
-Также можно проверить массив в поле со списком стандартных полей массива (будут проверяться по единому шаблону):
-
-```php
-$result = $this->check($data,
- [    
-    'users' => ['id' => 'required|type:int', 'name' => 'required|type:string'], // Необязательное поле, массив с перечислением (в каждом проверяется два поля).    
-    'images' => ['required', ['id' => 'required|type:int', 'width' => 'required|type:int', 'height' => 'required|type:int',]] // Обязательное поле, массив с перечислением (в каждом проверяется три поля).
- ]);
-```
-
-Для проверки значений вложенных массивов в проверочном массиве название указывается в квадратных скобках.
-
-```php
-
-$result = $this->check(
-    ['name1' => ['name2' => ['name3' => 'text']]], // Данные
-    ['[name1][name2][name3]' => 'required|type:string'] // Массив с условиями
- );
-```
-
-Приведённое выше условие вернёт успешную проверку с учётом вложенности.
-
-### Тестирование
-
-Трейты API проверены при помощи [github.com/phphleb/api-tests](https://github.com/phphleb/api-tests)
-
-
------------------
-
-[![License: MIT](https://img.shields.io/badge/License-MIT%20(Free)-brightgreen.svg)](https://github.com/phphleb/draft/blob/main/LICENSE) ![PHP](https://img.shields.io/badge/PHP-^7.4.0-blue) ![PHP](https://img.shields.io/badge/PHP-8-blue)
-
-
+API traits tested using [github.com/phphleb/api-tests](https://github.com/phphleb/api-tests)

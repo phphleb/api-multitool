@@ -34,14 +34,14 @@ trait ApiPageManagerTrait
      * Возвращает DTO-объект с вычисленными данными страницы.
      *
      * @param int $page - номер страницы (0 и 1 равнозначны 1).
-     * @param int $count - количество выводимых ресурсов на странице. Зависит от переданного `allCount`,
-     *                          при этом определяется состав последней (возможно неполной) страницы.
-     * @param int|null $allCount - максимальное кол-во ресурсов.
+     * @param int $count - количество выводимых ресурсов на странице. Зависит от переданного `all`,
+     *                     при этом определяется состав последней (возможно неполной) страницы.
+     * @param int|null $all - максимальное кол-во ресурсов.
      *
      * @return PageIntervalDto - возвращается класс с установленными значениями страницы.
      * @throws \ErrorException
      */
-    protected function getPageInterval(int $page = 0, int $count = 0, ?int $allCount = null): PageIntervalDto
+    protected function getPageInterval(int $page = 0, int $count = 0, ?int $all = null): PageIntervalDto
     {
         $count = $count && $count <= $this->apiBoxMaxCountPerPage ? $count : $this->apiBoxMaxCountPerPage;
         $count = abs($count);
@@ -51,15 +51,15 @@ trait ApiPageManagerTrait
         $dto->setPage($page);
         $dto->setCount($count);
         $start = $page > 1 ? ($page - 1 ) * $count : 0;
-        if (is_null($allCount)) {
+        if (is_null($all)) {
             $dto->setStart($start);
         } else {
-            $dto->setStart($start > $allCount ? $allCount : $start);
+            $dto->setStart(min($start, $all));
         }
-        if (is_null($allCount)) {
+        if (is_null($all)) {
             $dto->setEnd($start + $count);
         } else {
-            $dto->setEnd($start + $count > $allCount ? $allCount : $start + $count);
+            $dto->setEnd(min($start + $count, $all));
         }
 
         return $dto;

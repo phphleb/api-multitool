@@ -9,7 +9,7 @@ namespace Phphleb\ApiMultitool\Src;
  * Трейт для стандартизации вывода(предположительно API), при котором
  * возникающие ошибки обрабатываются пользовательским методом.
  * Требует присутствия метода обработки ошибок `error`,
- * из трейта @see \Phphleb\ApiMultitool\Src\ApiHandlersTrait
+ * из трейта @see \Phphleb\ApiMultitool\Src\ApiHandlerTrait
  * или собственной реализации метода, созданной специально для этой цели.
  *
  */

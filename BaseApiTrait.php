@@ -6,7 +6,7 @@ declare(strict_types = 1);
 namespace Phphleb\ApiMultitool;
 
 use Phphleb\ApiMultitool\Src\{
-    ApiHandlersTrait, ApiMethodWrapperTrait, ApiPageManagerTrait, ApiRequestDataManagerTrait
+    ApiHandlerTrait, ApiMethodWrapperTrait, ApiPageManagerTrait, ApiRequestDataManagerTrait
 };
 
 /**
@@ -18,7 +18,7 @@ use Phphleb\ApiMultitool\Src\{
 trait BaseApiTrait
 {
     use ApiMethodWrapperTrait;
-    use ApiHandlersTrait;
+    use ApiHandlerTrait;
     use ApiRequestDataManagerTrait;
     use ApiPageManagerTrait;
 }
