@@ -11,7 +11,7 @@ The set represents independent traits, each of which implements highly specializ
 
 Using Composer
  ```bash
-  composer require phphleb/api-multitool
+  composer require "phphleb/api-multitool:^2.0"
  ```
 or download the library to the 'vendor/phphleb/api-multitool' folder.
 
